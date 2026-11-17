@@ -1,0 +1,120 @@
+openapi: 3.1.0
+info:
+  title: DriveAtlas API
+  version: 0.1.0
+  description: >
+    Release 0 API. All application endpoints require a Google OIDC session;
+    state-changing requests require the XSRF-TOKEN cookie value in X-XSRF-TOKEN.
+servers:
+  - url: /
+security:
+  - sessionCookie: []
+paths:
+  /api/v1/session:
+    get:
+      summary: Get the authenticated account
+      responses:
+        "200":
+          description: Current account
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [subject, email]
+                properties:
+                  subject: { type: string }
+                  email: { type: string, format: email }
+                  name: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources:
+    get:
+      summary: List selected resource metadata owned by the account
+      responses:
+        "200":
+          description: Account-scoped resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SelectedResource" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      summary: Save a resource selected in Google Picker
+      description: This stores metadata only; it does not fetch or parse Drive content.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResourceSelection" }
+      responses:
+        "204": { description: Resource saved }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources/{providerId}:
+    delete:
+      summary: Remove one selected resource from the app
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Resource removed }
+        "404": { description: No matching resource for this account }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/account:
+    delete:
+      summary: Delete the account and all selected-resource metadata
+      description: Does not delete or modify any Google Drive resource.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204": { description: Account and owned data deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /actuator/health:
+    get:
+      security: []
+      summary: Liveness and readiness health
+      responses:
+        "200": { description: Healthy }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+  schemas:
+    ResourceSelection:
+      type: object
+      required: [providerId, name, mimeType, resourceType]
+      properties:
+        providerId: { type: string, maxLength: 512 }
+        name: { type: string, maxLength: 1000 }
+        mimeType: { type: string, maxLength: 255 }
+        resourceType: { type: string, enum: [FILE, FOLDER] }
+        modifiedTime: { type: [string, "null"], format: date-time }
+        webViewLink: { type: [string, "null"], maxLength: 2048 }
+        parentProviderId: { type: [string, "null"], maxLength: 512 }
+    SelectedResource:
+      allOf:
+        - $ref: "#/components/schemas/ResourceSelection"
+        - type: object
+          properties:
+            selectedAt: { type: string, format: date-time }
+            indexingStatus: { type: string, enum: [NOT_REQUESTED, QUEUED, PROCESSING, READY, UNSUPPORTED, FAILED] }
+  responses:
+    Unauthorized:
+      description: Sign in with Google before using this endpoint
+    BadRequest:
+      description: The request body is invalid

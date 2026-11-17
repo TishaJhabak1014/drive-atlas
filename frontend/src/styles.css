@@ -1,0 +1,66 @@
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #17231e;
+  background: #f5f7f4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --green: #245c45;
+  --green-dark: #193e30;
+  --muted: #78827b;
+  --line: #e2e8e1;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, a { font: inherit; }
+a { color: inherit; }
+
+.shell { max-width: 1100px; margin: auto; padding: 0 42px; }
+.topbar { height: 84px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; font-family: Manrope, sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.5px; }
+.brand-mark { width: 30px; height: 30px; display: grid; place-items: center; color: white; background: var(--green); border-radius: 9px; font-size: 15px; }
+.account { font-size: 13px; color: var(--muted); }
+.hero { padding: 77px 0 68px; max-width: 670px; }
+.eyebrow { font: 500 10px "DM Mono", monospace; letter-spacing: 1.7px; color: #65806f; }
+.status-dot { display: inline-block; margin: 0 8px 1px 0; width: 7px; height: 7px; border-radius: 100%; background: #5da878; }
+h1 { margin: 21px 0 15px; font: 700 clamp(46px, 7vw, 72px)/1.06 Manrope, sans-serif; letter-spacing: -5px; }
+h1 span { color: var(--green); }
+.intro { color: #6b756e; font-size: 16px; line-height: 1.7; max-width: 475px; margin: 0 0 28px; }
+.actions { display: flex; align-items: center; gap: 19px; }
+.primary { display: inline-flex; gap: 10px; align-items: center; border: 0; border-radius: 7px; background: var(--green); color: white; padding: 13px 17px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: background .15s, transform .15s; }
+.primary:hover { background: var(--green-dark); transform: translateY(-1px); }
+.primary:disabled, .quiet:disabled, .remove:disabled { opacity: .55; cursor: wait; }
+.login { width: fit-content; }
+.quiet { border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
+.quiet:hover, .remove:hover { color: #9c3939; }
+.muted { color: var(--muted); font-size: 13px; }
+.error { margin-top: 16px; color: #a33a32; font-size: 13px; }
+.library { border-top: 1px solid var(--line); padding: 33px 0 45px; min-height: 230px; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 19px; }
+.section-heading .eyebrow { margin: 0 0 7px; }
+h2 { font: 700 20px Manrope, sans-serif; letter-spacing: -.5px; margin: 0; }
+.count { font: 12px "DM Mono", monospace; color: #89938c; }
+.empty { min-height: 124px; display: flex; gap: 15px; align-items: center; border: 1px dashed #d8e0d8; border-radius: 8px; padding: 22px; color: #7d877f; }
+.empty p { max-width: 400px; margin: 0; font-size: 13px; line-height: 1.7; }
+.empty-icon { width: 35px; height: 35px; flex: 0 0 35px; display: grid; place-items: center; background: #eaf0e9; color: var(--green); border-radius: 9px; font-size: 20px; }
+.resource-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+.resource { display: flex; align-items: center; gap: 14px; padding: 15px 4px; border-bottom: 1px solid var(--line); }
+.file-icon { width: 34px; height: 34px; display: grid; place-items: center; background: #eaf0e9; color: var(--green); border-radius: 8px; }
+.resource-info { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4px; }
+.resource-info a, .resource-info .resource-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; font-weight: 600; font-size: 13px; }
+.resource-info a:hover { color: var(--green); }
+.resource-info span, .not-indexed { color: var(--muted); font-size: 11px; }
+.not-indexed { font-family: "DM Mono", monospace; }
+.remove { border: 0; background: transparent; color: #929b94; cursor: pointer; font-size: 21px; line-height: 1; }
+footer { border-top: 1px solid var(--line); padding: 22px 0 34px; display: flex; justify-content: space-between; gap: 15px; color: #8a938c; font-size: 11px; }
+
+@media (max-width: 640px) {
+  .shell { padding: 0 21px; }
+  .topbar { height: 68px; }
+  .hero { padding: 58px 0 49px; }
+  h1 { letter-spacing: -3px; }
+  .resource { gap: 9px; }
+  .not-indexed { display: none; }
+  footer { flex-direction: column; }
+}
