@@ -51,6 +51,14 @@ h2 { font: 700 20px Manrope, sans-serif; letter-spacing: -.5px; margin: 0; }
 .resource-info a, .resource-info .resource-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; font-weight: 600; font-size: 13px; }
 .resource-info a:hover { color: var(--green); }
 .resource-info span, .not-indexed { color: var(--muted); font-size: 11px; }
+.resource-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 5px; }
+.tag { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 8px; background: #eaf0e9; color: var(--green-dark) !important; font-size: 11px !important; }
+.tag button, .tag-form button { border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer; line-height: 1; }
+.tag button:disabled, .tag-form button:disabled { opacity: .5; cursor: wait; }
+.tag-form { display: inline-flex; align-items: center; gap: 5px; }
+.tag-form input { width: 90px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; background: white; font: inherit; font-size: 11px; }
+.tag-form input:focus { outline: 2px solid #9bb9a5; outline-offset: 1px; }
+.tag-form button { width: 21px; height: 21px; border-radius: 50%; background: #eaf0e9; color: var(--green); }
 .not-indexed { font-family: "DM Mono", monospace; }
 .remove { border: 0; background: transparent; color: #929b94; cursor: pointer; font-size: 21px; line-height: 1; }
 footer { border-top: 1px solid var(--line); padding: 22px 0 34px; display: flex; justify-content: space-between; gap: 15px; color: #8a938c; font-size: 11px; }

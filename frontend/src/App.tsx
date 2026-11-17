@@ -15,6 +15,12 @@ interface SelectedResource {
   webViewLink?: string;
   selectedAt: string;
   indexingStatus: string;
+  tags: ResourceTag[];
+}
+
+interface ResourceTag {
+  id: string;
+  name: string;
 }
 
 const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
@@ -45,6 +51,7 @@ function App() {
   const [busyLabel, setBusyLabel] = useState("Working…");
   const [pickerReady, setPickerReady] = useState(false);
   const [error, setError] = useState("");
+  const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -110,6 +117,45 @@ function App() {
     }
   }
 
+  async function addTag(event: React.FormEvent<HTMLFormElement>, providerId: string) {
+    event.preventDefault();
+    const name = tagInputs[providerId]?.trim();
+    if (!name) return;
+
+    setBusy(true);
+    setBusyLabel("Saving tag…");
+    setError("");
+    try {
+      await api<ResourceTag>(`/api/v1/resources/${encodeURIComponent(providerId)}/tags`, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      setTagInputs((current) => ({ ...current, [providerId]: "" }));
+      await refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The tag could not be saved.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeTag(providerId: string, tagId: string) {
+    setBusy(true);
+    setBusyLabel("Removing tag…");
+    setError("");
+    try {
+      await api<void>(
+        `/api/v1/resources/${encodeURIComponent(providerId)}/tags/${encodeURIComponent(tagId)}`,
+        { method: "DELETE" },
+      );
+      await refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The tag could not be removed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function disconnect() {
     if (!window.confirm("Disconnect and permanently delete your DriveAtlas account and selected-resource metadata? This does not delete anything in Google Drive.")) return;
     setBusy(true);
@@ -136,7 +182,7 @@ function App() {
       </header>
 
       <section className="hero">
-        <div className="eyebrow"><span className="status-dot" /> RELEASE 0 · PRIVATE BY DESIGN</div>
+        <div className="eyebrow"><span className="status-dot" /> RELEASE 1 · MANUAL TAGS</div>
         <h1>Your files.<br /><span>Your scope.</span></h1>
         <p className="intro">A calm, review-first space for the Google Drive files you choose. Nothing is scanned until you select it.</p>
         {loading ? <p className="muted">Checking your connection…</p> : session ? (
@@ -183,6 +229,33 @@ function App() {
                     ? <a href={safeDriveLink(resource.webViewLink)} target="_blank" rel="noreferrer">{resource.name}</a>
                     : <span className="resource-name">{resource.name}</span>}
                   <span>{resource.resourceType === "FOLDER" ? "Folder" : resource.mimeType}</span>
+                  <div className="resource-tags" aria-label={`Tags for ${resource.name}`}>
+                    {resource.tags.map((tag) => (
+                      <span className="tag" key={tag.id}>
+                        {tag.name}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`Remove tag ${tag.name} from ${resource.name}`}
+                          onClick={() => void removeTag(resource.providerId, tag.id)}
+                        >×</button>
+                      </span>
+                    ))}
+                    <form className="tag-form" onSubmit={(event) => void addTag(event, resource.providerId)}>
+                      <input
+                        aria-label={`New tag for ${resource.name}`}
+                        maxLength={80}
+                        value={tagInputs[resource.providerId] ?? ""}
+                        onChange={(event) => setTagInputs((current) => ({
+                          ...current,
+                          [resource.providerId]: event.target.value,
+                        }))}
+                        placeholder="Add tag"
+                        disabled={busy}
+                      />
+                      <button type="submit" disabled={busy || !tagInputs[resource.providerId]?.trim()}>+</button>
+                    </form>
+                  </div>
                 </div>
                 <span className="not-indexed">Selected · not indexed</span>
                 <button className="remove" disabled={busy} aria-label={`Remove ${resource.name}`} onClick={() => void removeResource(resource.providerId)}>×</button>
@@ -193,7 +266,7 @@ function App() {
       </section>
 
       <footer>
-        <span>Release 0 stores selected-resource metadata only.</span>
+        <span>Tags are user-applied; Drive file contents are not read.</span>
         <span>Original Drive files are never modified or deleted.</span>
       </footer>
     </main>

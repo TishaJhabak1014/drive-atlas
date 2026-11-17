@@ -2,6 +2,8 @@ package com.driveatlas.api.resources;
 
 import com.driveatlas.api.account.AccountRepository;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -29,6 +31,16 @@ public class ResourceService {
     @Transactional
     public boolean delete(OidcUser user, String providerId) {
         return resources.delete(accountId(user), providerId);
+    }
+
+    @Transactional
+    public Optional<ResourceRepository.ResourceTag> addTag(OidcUser user, String providerId, String name) {
+        return resources.addTag(accountId(user), providerId, name);
+    }
+
+    @Transactional
+    public boolean removeTag(OidcUser user, String providerId, UUID tagId) {
+        return resources.removeTag(accountId(user), providerId, tagId);
     }
 
     @Transactional

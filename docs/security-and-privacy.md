@@ -1,8 +1,8 @@
-# Release 0 security and privacy review
+# DriveAtlas security and privacy review
 
 ## Scope and release gate
 
-Release 0 provides Google sign-in, explicit Google Picker selection, and storage of selected-resource metadata. It does **not** read, download, extract, classify, or log file contents. Do not enable file processing or onboard real user data beyond this metadata-only workflow until the residual risks below are resolved and reviewed.
+The current implementation provides Google sign-in, explicit Google Picker selection, storage of selected-resource metadata, and user-entered manual tags. Tags are account-scoped app data; they are not inferred from or compared with Drive contents. DriveAtlas does **not** read, download, extract, classify, or log file contents. Do not enable file processing or onboard real user data beyond this workflow until the residual risks below are resolved and reviewed.
 
 ## OAuth and selected-file access
 
@@ -10,20 +10,20 @@ Release 0 provides Google sign-in, explicit Google Picker selection, and storage
 - The browser obtains a short-lived access token from Google Identity Services only after the user opens the Picker. The Drive scope is `https://www.googleapis.com/auth/drive.file`; the app does not request broad `drive` or `drive.readonly` access.
 - The Picker authorization hints the signed-in email; users should confirm that Picker is showing the same Google account.
 - The token is held only in JavaScript memory and passed to Google Picker. It is not sent to DriveAtlas APIs, saved in browser storage, logged, or persisted in PostgreSQL. The app does not explicitly revoke it when Picker closes; it remains a short-lived access token, while the user's consent remains until revoked in Google Account settings.
-- Only the Picker items the user selects are sent as metadata to the API. Selecting a folder records that folder only; Release 0 does not enumerate its descendants.
+- Only the Picker items the user selects are sent as metadata to the API. Selecting a folder records that folder only; the app does not enumerate its descendants.
 - The API does not independently verify the Picker assertion or fetch Drive metadata in this release. The browser is not a trusted source; the metadata is display-only, and no content processing is available. Before any server-side Drive reads are added, validate each resource against the signed-in user's `drive.file` authorization at the Google API boundary.
 
 ## Identity, ownership, retention, and deletion
 
 - Google OIDC `sub` is the stable account key; email is profile metadata, not an ownership key.
 - Every resource query, update, and delete is constrained by the account ID resolved from the authenticated OIDC subject. Unauthenticated API requests receive `401`.
-- Database foreign keys cascade account deletion to selected resource metadata. Disconnect requires confirmation, deletes the account and its app data, then invalidates the application session. It never changes original Drive files.
+- Database foreign keys cascade account deletion to selected resource metadata and manual tags. Disconnect requires confirmation, deletes the account and its app data, then invalidates the application session. It never changes original Drive files.
 - The OIDC session is held in an HTTP-only, SameSite=Lax cookie. Set `SESSION_COOKIE_SECURE=true` behind HTTPS in production. CSRF protection applies to state-changing requests.
 - No Drive access or refresh token is stored server-side. The database contains only account identity and user-selected provider metadata.
 
 ## Threats and mitigations
 
-| Threat | Release 0 mitigation | Remaining work |
+| Threat | Current mitigation | Remaining work |
 |---|---|---|
 | Over-broad Drive access | `drive.file` and user-mediated Picker only | Verify exact consent and folder behavior with a production Google project |
 | Cross-account metadata access | Ownership-scoped SQL and OIDC subject mapping | Add isolation tests for every future data endpoint |

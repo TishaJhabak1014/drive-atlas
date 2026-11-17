@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: DriveAtlas API
-  version: 0.1.0
+  version: 0.2.0
   description: >
-    Release 0 API. All application endpoints require a Google OIDC session;
+    DriveAtlas API for selected-resource metadata and manual tags. All application endpoints require a Google OIDC session;
     state-changing requests require the XSRF-TOKEN cookie value in X-XSRF-TOKEN.
 servers:
   - url: /
@@ -68,6 +68,54 @@ paths:
         "204": { description: Resource removed }
         "404": { description: No matching resource for this account }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources/{providerId}/tags:
+    post:
+      summary: Apply a manual tag to an account-owned selected resource
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        "200":
+          description: The tag applied to the resource
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResourceTag" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { description: No matching resource for this account }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources/{providerId}/tags/{tagId}:
+    delete:
+      summary: Remove a manual tag from an account-owned selected resource
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+        - name: tagId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Tag removed }
+        "404": { description: No matching resource tag for this account }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/account:
     delete:
       summary: Delete the account and all selected-resource metadata
@@ -113,6 +161,15 @@ components:
           properties:
             selectedAt: { type: string, format: date-time }
             indexingStatus: { type: string, enum: [NOT_REQUESTED, QUEUED, PROCESSING, READY, UNSUPPORTED, FAILED] }
+            tags:
+              type: array
+              items: { $ref: "#/components/schemas/ResourceTag" }
+    ResourceTag:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 80 }
   responses:
     Unauthorized:
       description: Sign in with Google before using this endpoint

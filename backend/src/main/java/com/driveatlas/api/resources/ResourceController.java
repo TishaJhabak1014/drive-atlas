@@ -2,6 +2,7 @@ package com.driveatlas.api.resources;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -45,6 +46,27 @@ public class ResourceController {
     void remove(@AuthenticationPrincipal OidcUser user, @PathVariable String providerId) {
         if (!service.delete(user, providerId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Selected resource not found");
+        }
+    }
+
+    @PostMapping("/resources/{providerId}/tags")
+    ResourceRepository.ResourceTag addTag(
+            @AuthenticationPrincipal OidcUser user,
+            @PathVariable String providerId,
+            @Valid @RequestBody ResourceTagRequest request) {
+        return service.addTag(user, providerId, request.name())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Selected resource not found"));
+    }
+
+    @DeleteMapping("/resources/{providerId}/tags/{tagId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void removeTag(
+            @AuthenticationPrincipal OidcUser user,
+            @PathVariable String providerId,
+            @PathVariable UUID tagId) {
+        if (!service.removeTag(user, providerId, tagId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource tag not found");
         }
     }
 

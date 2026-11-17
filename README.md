@@ -56,7 +56,7 @@ docker-compose.yml
 
 ## Release plan
 
-The product principles, roadmap, acceptance criteria, cloud direction, and quality gates are maintained in this README and remain the project requirements for later releases. Release 1's metadata indexing, extraction, tags, and search are not implemented yet.
+The product principles, roadmap, acceptance criteria, cloud direction, and quality gates are maintained in this README and remain the project requirements for later releases. Release 1 is in progress: users can apply and remove persistent manual tags on selected resources. Folder traversal, metadata refresh/indexing states, extraction, search, and AI tag suggestions remain unimplemented.
 
 ## Security review
 
@@ -84,6 +84,7 @@ Read [docs/security-and-privacy.md](docs/security-and-privacy.md) before connect
 
 ### Release 1 — Drive library and editable topic tags
 
+- Implemented: persistent, account-scoped manual tags for explicitly selected resources.
 - Mirror selected folder structure and list selected files with name, MIME type, modified time, and source link.
 - Index metadata reliably and show queued, processing, ready, unsupported, and failed states.
 - Support manual tags and reviewable AI tag suggestions with confidence and evidence.
