@@ -33,6 +33,15 @@ class DriveAtlasApplicationTests {
     }
 
     @Test
+    void landingPageAndPrivacyNoticeArePublic() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/privacy.html"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void blankManualTagIsRejected() throws Exception {
         mockMvc.perform(post("/api/v1/resources/file-id/tags")
                         .with(user("test-user"))
@@ -41,5 +50,26 @@ class DriveAtlasApplicationTests {
                         .content("{\"name\":\"   \"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void folderScanRequiresAnAuthenticatedSession() throws Exception {
+        mockMvc.perform(post("/api/v1/resources/folder-id/scan")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resources\":[]}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void contentEndpointsRequireAnAuthenticatedSession() throws Exception {
+        mockMvc.perform(get("/api/v1/resources/file-id/content"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/resources/file-id/tag-suggestions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"text\":\"a sufficiently long document excerpt\"}"))
+                .andExpect(status().isUnauthorized());
     }
 }

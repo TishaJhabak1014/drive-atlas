@@ -41,6 +41,17 @@ public class ResourceController {
         service.save(user, selection);
     }
 
+    @PostMapping("/resources/{providerId}/scan")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void saveFolderScan(
+            @AuthenticationPrincipal OidcUser user,
+            @PathVariable String providerId,
+            @Valid @RequestBody ResourceScanRequest request) {
+        if (!service.saveFolderScan(user, providerId, request.resources())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Selected folder not found");
+        }
+    }
+
     @DeleteMapping("/resources/{providerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void remove(@AuthenticationPrincipal OidcUser user, @PathVariable String providerId) {

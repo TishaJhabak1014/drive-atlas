@@ -1,0 +1,20 @@
+substitutions:
+  _IMAGE_TAG: staging
+  _VITE_GOOGLE_CLIENT_ID: ""
+  _VITE_GOOGLE_API_KEY: ""
+  _VITE_GOOGLE_APP_ID: ""
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag
+      - asia-southeast1-docker.pkg.dev/$PROJECT_ID/driveatlas/driveatlas:${_IMAGE_TAG}
+      - --build-arg
+      - VITE_GOOGLE_CLIENT_ID=${_VITE_GOOGLE_CLIENT_ID}
+      - --build-arg
+      - VITE_GOOGLE_API_KEY=${_VITE_GOOGLE_API_KEY}
+      - --build-arg
+      - VITE_GOOGLE_APP_ID=${_VITE_GOOGLE_APP_ID}
+      - .
+images:
+  - asia-southeast1-docker.pkg.dev/$PROJECT_ID/driveatlas/driveatlas:${_IMAGE_TAG}

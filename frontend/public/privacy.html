@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f7f4" />
+    <meta name="description" content="DriveAtlas privacy notice and data practices." />
+    <title>Privacy notice · DriveAtlas</title>
+    <style>
+      :root { color-scheme: light; font-family: Arial, sans-serif; color: #17231e; background: #f5f7f4; }
+      body { margin: 0; line-height: 1.65; }
+      header, main, footer { max-width: 850px; margin: 0 auto; padding: 24px; }
+      header { border-bottom: 1px solid #e2e8e1; }
+      header a { color: #245c45; font-weight: 700; text-decoration: none; }
+      h1, h2 { color: #193e30; line-height: 1.25; }
+      h1 { margin-top: 36px; }
+      h2 { margin-top: 30px; font-size: 1.15rem; }
+      p, li { max-width: 760px; }
+      a { color: #245c45; }
+      footer { margin-top: 42px; border-top: 1px solid #e2e8e1; color: #68766d; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <header><a href="/">DriveAtlas</a></header>
+    <main>
+      <h1>Privacy notice</h1>
+      <p><strong>Last updated: November 18, 2026</strong></p>
+      <p>DriveAtlas is a portfolio staging application operated by Tisha Jhabak. It helps you organize and review Google Drive files you explicitly select. This notice describes the features currently available in this staging version; roadmap features that are not implemented are not active.</p>
+
+      <h2>Information DriveAtlas handles</h2>
+      <ul>
+        <li><strong>Google account details:</strong> your Google account identifier, email address, and display name, used to sign you in and associate your application data with your account.</li>
+        <li><strong>Selected Drive resource information:</strong> names, file types, Drive identifiers, links, modified times, and folder relationships for items you select or discover when you explicitly scan a selected folder. Folder scans request metadata only and are capped at 5,000 descendants.</li>
+        <li><strong>Tags:</strong> tags you add or accept for your selected resources.</li>
+        <li><strong>Extracted text:</strong> text from supported plain-text, Markdown, and Google Docs files. Extraction is initiated by you. The retention option is on by default; uncheck it to keep the new text only in browser memory and remove any previously saved copy for that file.</li>
+        <li><strong>Session and operational information:</strong> an HTTP-only sign-in session cookie and routine service request metadata needed to operate and troubleshoot the service. DriveAtlas is configured not to log document text, Gemini prompts or responses, or Google access tokens.</li>
+      </ul>
+
+      <h2>How information is used and shared</h2>
+      <p>DriveAtlas uses Google OAuth for sign-in. After sign-in, your browser uses a short-lived Google access token directly with Google Picker and the Google Drive API. DriveAtlas does not store that access token. Google grants the metadata and content scopes broadly across Drive; DriveAtlas limits its scans and content operations to files represented in your explicitly selected file or folder scopes.</p>
+      <p>Saved account details, selected-resource metadata, tags, and text you chose to retain are stored in the application database hosted by Neon. The staging database is in the Singapore region. The application is hosted on Google Cloud Run. These providers process data to host and operate the service.</p>
+      <p>If you explicitly request Gemini tag suggestions or document consolidation and confirm the request, the selected text is sent to Google Gemini for that operation. Tag suggestions can send up to 30,000 characters; consolidation accepts 2–10 sources and up to 60,000 combined characters. DriveAtlas does not save generated drafts. Google’s Gemini API free-tier data-use terms may allow submitted content to be used to improve Google products. Do not submit confidential or sensitive documents. See <a href="https://ai.google.dev/gemini-api/docs/pricing">Google Gemini API pricing and data-use terms</a>.</p>
+      <p>Generated drafts remain in browser memory until you download them. DriveAtlas does not write, modify, or delete files in Google Drive.</p>
+
+      <h2>Retention and deletion</h2>
+      <p>Saved account data and retained extracted text remain in the application database until you use <strong>Disconnect</strong>, which deletes your DriveAtlas account data and ends your application session. You can also forget saved text file by file. These controls do not delete original Drive files or revoke Google consent; you can revoke that consent in your Google Account settings.</p>
+      <p>The Neon Free plan provides a limited point-in-time restore history (currently up to six hours, subject to the plan’s limits and your project settings). A deletion from the live database may therefore remain in provider recovery history until that history expires. This staging service does not promise immediate deletion from recovery copies or a separate backup archive.</p>
+      <p>Google and Neon may retain or process information under their own terms and policies. Request account-data help or deletion assistance at <a href="mailto:tishajhabak22@gmail.com">tishajhabak22@gmail.com</a>.</p>
+
+      <h2>Your choices and security</h2>
+      <p>You choose which Drive resources to select, whether to retain extracted text, and whether to send selected text to Gemini. You can review and remove tags, forget saved text, disconnect to delete application data, and revoke Google access in your Google Account. The application uses HTTPS in staging, secure HTTP-only session cookies, account-scoped database queries, and explicit confirmation before sending text to Gemini. No internet service can guarantee absolute security.</p>
+
+      <h2>Contact</h2>
+      <p>For questions, access or deletion requests, or support, contact <a href="mailto:tishajhabak22@gmail.com">tishajhabak22@gmail.com</a>.</p>
+    </main>
+    <footer><a href="/">Return to DriveAtlas</a></footer>
+  </body>
+</html>

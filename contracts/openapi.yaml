@@ -3,7 +3,7 @@ info:
   title: DriveAtlas API
   version: 0.2.0
   description: >
-    DriveAtlas API for selected-resource metadata and manual tags. All application endpoints require a Google OIDC session;
+    DriveAtlas API for selected-resource metadata, manual tags, explicit folder metadata scans, selected-scope text retention, tag suggestions, and source-grounded document consolidation. All application endpoints require a Google OIDC session;
     state-changing requests require the XSRF-TOKEN cookie value in X-XSRF-TOKEN.
 servers:
   - url: /
@@ -52,6 +52,28 @@ paths:
       responses:
         "204": { description: Resource saved }
         "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources/{providerId}/scan:
+    post:
+      summary: Replace the metadata snapshot for an explicitly selected folder
+      description: Accepts metadata only for the selected folder and its descendants returned by an authorized Drive API scan.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResourceScanRequest" }
+      responses:
+        "204": { description: Folder metadata snapshot saved }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { description: No matching explicitly selected folder for this account }
         "401": { $ref: "#/components/responses/Unauthorized" }
   /api/v1/resources/{providerId}:
     delete:
@@ -116,6 +138,143 @@ paths:
         "204": { description: Tag removed }
         "404": { description: No matching resource tag for this account }
         "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources/{providerId}/content:
+    get:
+      summary: Read saved extracted text for a file in a selected-resource scope
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+      responses:
+        "200":
+          description: Saved text and extraction timestamp
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [text, extractedAt]
+                properties:
+                  text: { type: string, maxLength: 500000 }
+                  extractedAt: { type: string, format: date-time }
+        "404": { description: No saved text or file in a selected-resource scope for this account }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      summary: Save extracted text for a file in a selected-resource scope
+      description: The browser extracts plain text, Markdown, or an exported Google Doc; this endpoint stores a copy for later use. Scanned descendants are eligible when they belong to an explicitly selected folder's scope.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 500000 }
+      responses:
+        "204": { description: Extracted text saved }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { description: No file in a selected-resource scope for this account }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    delete:
+      summary: Delete saved extracted text for a file in a selected-resource scope
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+      responses:
+        "204": { description: Saved text deleted }
+        "404": { description: No file in a selected-resource scope for this account }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/resources/{providerId}/tag-suggestions:
+    post:
+      summary: Generate reviewable tag suggestions from selected-scope file text
+      description: Sends up to 30,000 characters to the configured Gemini provider. Suggestions are transient and are not applied as tags unless the user accepts them.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 512 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 30000 }
+      responses:
+        "200":
+          description: Suggestions with confidence and exact supporting evidence
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 5
+                items: { $ref: "#/components/schemas/TagSuggestion" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { description: No file in a selected-resource scope for this account }
+        "502": { description: Gemini returned an error or invalid/un-grounded suggestions }
+        "503": { description: Gemini is not configured }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/compositions:
+    post:
+      summary: Generate a source-grounded summary or full merge from selected text files
+      description: Sends 2–10 supported source texts, up to 60,000 combined characters, to Gemini after user confirmation. SUMMARIZE creates a concise synthesis; FULL aims to preserve unique details while removing semantic repetition. FULL flags contradictions between selected sources and does not externally fact-check claims. Every generated paragraph and merge note must cite exact source evidence; the result is transient and is not saved by the API.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sources]
+              properties:
+                mode:
+                  type: string
+                  enum: [SUMMARIZE, FULL]
+                  default: SUMMARIZE
+                  description: Optional for backward compatibility; defaults to SUMMARIZE.
+                sources:
+                  type: array
+                  minItems: 2
+                  maxItems: 10
+                  items:
+                    type: object
+                    required: [providerId, text]
+                    properties:
+                      providerId: { type: string, minLength: 1, maxLength: 512 }
+                      text: { type: string, minLength: 1, maxLength: 60000 }
+      responses:
+        "200":
+          description: A reviewable consolidation with exact source evidence and merge notes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CompositionResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: At least one source is outside the account's selected-resource scopes }
+        "413": { description: Combined source text exceeds 60,000 characters }
+        "502": { description: Gemini failed or returned invalid or ungrounded consolidation output }
+        "503": { description: Gemini is not configured }
   /api/v1/account:
     delete:
       summary: Delete the account and all selected-resource metadata
@@ -160,16 +319,86 @@ components:
         - type: object
           properties:
             selectedAt: { type: string, format: date-time }
+            metadataRefreshedAt: { type: [string, "null"], format: date-time }
+            contentExtractedAt: { type: [string, "null"], format: date-time }
+            hasStoredText: { type: boolean }
             indexingStatus: { type: string, enum: [NOT_REQUESTED, QUEUED, PROCESSING, READY, UNSUPPORTED, FAILED] }
+            explicitlySelected: { type: boolean }
             tags:
               type: array
               items: { $ref: "#/components/schemas/ResourceTag" }
+    ResourceScanRequest:
+      type: object
+      required: [resources]
+      properties:
+        resources:
+          type: array
+          minItems: 1
+          maxItems: 5001
+          items: { $ref: "#/components/schemas/ResourceSelection" }
     ResourceTag:
       type: object
       required: [id, name]
       properties:
         id: { type: string, format: uuid }
         name: { type: string, maxLength: 80 }
+    TagSuggestion:
+      type: object
+      required: [name, confidence, evidence]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence: { type: string, minLength: 8, maxLength: 500 }
+    CompositionResult:
+      type: object
+      required: [title, sections, notes]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        sections:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: "#/components/schemas/CompositionSection" }
+        notes:
+          type: array
+          maxItems: 30
+          items: { $ref: "#/components/schemas/CompositionNote" }
+    CompositionSection:
+      type: object
+      required: [heading, paragraphs]
+      properties:
+        heading: { type: string, minLength: 1, maxLength: 120 }
+        paragraphs:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/CompositionParagraph" }
+    CompositionParagraph:
+      type: object
+      required: [text, evidence]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 5000 }
+        evidence:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { $ref: "#/components/schemas/CompositionEvidence" }
+    CompositionNote:
+      type: object
+      required: [category, summary, evidence]
+      properties:
+        category: { type: string, enum: [duplicate, unique, structure, correction, conflict] }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        evidence:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { $ref: "#/components/schemas/CompositionEvidence" }
+    CompositionEvidence:
+      type: object
+      required: [sourceId, quote]
+      properties:
+        sourceId: { type: string, pattern: "^S[1-9][0-9]*$" }
+        quote: { type: string, minLength: 8, maxLength: 1000 }
   responses:
     Unauthorized:
       description: Sign in with Google before using this endpoint

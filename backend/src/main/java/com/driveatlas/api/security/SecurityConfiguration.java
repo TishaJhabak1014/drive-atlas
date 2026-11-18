@@ -29,7 +29,8 @@ public class SecurityConfiguration {
 
         return http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/health/**", "/error").permitAll()
+                        .requestMatchers("/", "/index.html", "/privacy.html", "/assets/**", "/favicon.ico",
+                                "/actuator/health/**", "/error").permitAll()
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)

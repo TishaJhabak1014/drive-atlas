@@ -6,12 +6,12 @@ DriveAtlas is a review-first knowledge workspace for organizing and exploring fi
 
 Release 0 includes a React + TypeScript + Vite frontend, Java 21 + Spring Boot REST API, PostgreSQL/Flyway schema, Docker Compose development environment, GitHub Actions CI, OpenAPI contract, health probes, and a security/privacy review.
 
-The current app supports Google sign-in, selecting files/folders through Google Picker, saving account-owned selection metadata, removing a selection, and deleting the DriveAtlas account data on disconnect. It does not read or index file contents, request broad Drive access, store Drive tokens, or modify/delete original Drive files. A selected folder is recorded without enumerating its contents.
+The current app supports Google sign-in, selecting files/folders through Google Picker, saving account-owned metadata, explicitly scanning selected folders, and applying manual tags. Users can extract plain text, Markdown, and Google Docs text from supported files in selected resources, including scanned folder descendants; saving the extracted text is optional and checked by default. Content extraction requests Google's restricted, Drive-wide read-only OAuth scope, while DriveAtlas limits extraction to files in the user's selected-resource scopes. Users can request reviewable Gemini tag suggestions, with confidence and exact supporting evidence, and must accept suggestions before they become tags. Merge-summarize and merge-in-full send 2–10 explicitly selected text sources (up to 60,000 combined characters) to Gemini only after confirmation, then return a citation-grounded draft with merge notes for review and Markdown download. Merge-in-full aims to retain and refine unique details while removing semantic repetition; contradictions between selected sources are flagged rather than externally fact-checked or silently discarded. The selected source list clears after a successful merge. Generated drafts are not stored by DriveAtlas or written to Drive. DriveAtlas does not store Drive tokens or modify/delete original Drive files.
 
 ### Technology
 
 - Frontend: React, TypeScript, Vite, nginx
-- Backend: Java 21, Spring Boot, Spring Security OAuth 2.0/OIDC, JDBC
+- Backend: Java 21, Spring Boot, Spring Security OAuth 2.0/OIDC, JDBC, LangChain4j Gemini integration
 - Persistence: PostgreSQL 16, Flyway migrations
 - Infrastructure: Docker Compose, GitHub Actions
 
@@ -19,25 +19,30 @@ The current app supports Google sign-in, selecting files/folders through Google 
 
 Requirements: Docker Desktop with Compose, a Google Cloud project, and a Google OAuth web client.
 
-1. Copy `.env.example` to `.env` and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY`, and `GOOGLE_PROJECT_NUMBER`. For local use, leave `SESSION_COOKIE_SECURE=false`; use `true` behind HTTPS in production. Replace the sample PostgreSQL password.
-2. In the same Google Cloud project, enable the Google Picker API, create the OAuth web client and API key, and use that project's number for `GOOGLE_PROJECT_NUMBER`. Configure the OAuth client with JavaScript origin `http://localhost:8080` and redirect URI `http://localhost:8080/login/oauth2/code/google`. For the API key's website (HTTP-referrer) restrictions, allow both `http://localhost:8080/*` and `https://docs.google.com/*`; the Picker runs in an iframe hosted on `docs.google.com`. If the key has API restrictions, allow the Google Picker API. This release does not call the Drive API directly.
+1. Copy `.env.example` to `.env` and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY`, and `GOOGLE_PROJECT_NUMBER`. `GEMINI_API_KEY` is optional and enables AI tag suggestions and document merges; `GEMINI_MODEL` defaults to `gemini-3.5-flash-lite`. For local use, leave `SESSION_COOKIE_SECURE=false`; use `true` behind HTTPS in production. Replace the sample PostgreSQL password.
+2. In the same Google Cloud project, enable the Google Picker API and Google Drive API, create the OAuth web client and API key, and use that project's number for `GOOGLE_PROJECT_NUMBER`. In Google Auth Platform **Data Access**, configure `openid`, `email`, `profile`, `https://www.googleapis.com/auth/drive.file`, `https://www.googleapis.com/auth/drive.metadata.readonly`, and `https://www.googleapis.com/auth/drive.readonly`. Folder scans request `drive.metadata.readonly`; text extraction requests `drive.readonly`. Google grants these scopes broadly across Drive, but DriveAtlas only scans selected folder subtrees and extracts files represented in selected-resource scopes. Both Drive scopes are restricted, so complete Google's verification and security-assessment requirements before production use. Configure the OAuth client with JavaScript origin `http://localhost:8080` and redirect URI `http://localhost:8080/login/oauth2/code/google`. For the API key's website (HTTP-referrer) restrictions, allow both `http://localhost:8080/*` and `https://docs.google.com/*`; the Picker runs in an iframe hosted on `docs.google.com`. If the key has API restrictions, allow both the Google Picker API and Google Drive API.
 3. Start the stack:
 
    ```powershell
    docker compose up --build
    ```
 
-4. Open `http://localhost:8080`, connect Google, and select a small set of test files. Verify their metadata is listed, remove individual entries, then use **Disconnect** to delete all DriveAtlas account data. Check PostgreSQL's `drive_resource` table to confirm scope and deletion behavior. The app does not access Drive file contents.
+4. Open `http://localhost:8080`, connect Google, and select a small set of test files and a test folder. On the first **Scan folder** action, review and approve Google's metadata-only scope consent. Folder scans are limited to 5,000 descendants and retrieve metadata only. For a supported `.txt`, `.md`, or Google Doc selected directly or found in the scanned folder, try **Extract text** and review the retention checkbox. Extraction triggers a separate Google consent for broad read-only Drive access; DriveAtlas itself limits content reads to files in selected-resource scopes. Saved content can be viewed and explicitly forgotten. Extract at least two supported files, select **Include in Gemini consolidation**, then choose **Merge-summarize** for a concise synthesis or **Merge-in-full** to retain and refine details while removing semantic repetition. The confirmation lists the exact selected files before sending. Review merge notes and exact evidence citations before downloading. Full mode flags contradictions among selected files but does not perform external fact-checking; it does not yet provide per-change accept/reject controls. Source selections clear after a successful merge. If Gemini is configured, you can also try **Suggest tags with Gemini**. Google states that content submitted through the [free Gemini API tier](https://ai.google.dev/gemini-api/docs/pricing) may be used to improve Google products; do not send confidential or sensitive text. Verify suggestions before accepting them. Then use **Disconnect** to delete DriveAtlas account data. Original Drive files are never modified or deleted.
 5. Stop the stack with `Ctrl+C`. `docker compose down` stops containers; `docker compose down -v` also permanently removes the local PostgreSQL volume.
 
-The frontend embeds these Google settings at image build time. After changing them in `.env`, rebuild the web service with `docker compose up --build -d web`.
+The frontend embeds the Google Picker settings at image build time. `GEMINI_API_KEY` stays server-side. After changing frontend settings in `.env`, rebuild the web service with `docker compose up --build -d web`; rebuild the API if changing its environment.
 
 The `.env` file is ignored by Git. Never commit OAuth secrets or production credentials.
+
+## Staging deployment
+
+The current staging deployment guide targets Google Cloud Run with the existing managed Neon PostgreSQL project. It builds the React frontend into the Spring Boot image for same-origin routing, uses Secret Manager for runtime credentials, and documents OAuth branding, the privacy notice, data retention, rollback, and smoke checks. See [docs/cloud-run-staging.md](docs/cloud-run-staging.md). Do not deploy the local Compose PostgreSQL volume as a hosted database.
 
 ## Development and checks
 
 - Frontend: `cd frontend; npm ci; npm run dev` (with the API available at `localhost:8080`).
 - Frontend production build: `cd frontend; npm ci; npm run build`.
+- Frontend tests: `cd frontend; npm test` (Node.js 22+).
 - Backend tests: `cd backend; mvn verify`.
 - Compose: `docker compose up --build`.
 
@@ -56,7 +61,7 @@ docker-compose.yml
 
 ## Release plan
 
-The product principles, roadmap, acceptance criteria, cloud direction, and quality gates are maintained in this README and remain the project requirements for later releases. Release 1 is in progress: users can apply and remove persistent manual tags on selected resources. Folder traversal, metadata refresh/indexing states, extraction, search, and AI tag suggestions remain unimplemented.
+The product principles, roadmap, acceptance criteria, cloud direction, and quality gates are maintained in this README and remain the project requirements for later releases. Release 2 is partially implemented: text extraction and grounded tag suggestions are available, while full-text search and PDF/image OCR are deferred. Release 3 has started with AI-assisted merge-summarize and merge-in-full modes; same-document revision comparison and interactive conflict resolution remain planned.
 
 ## Security review
 
@@ -75,7 +80,7 @@ Read [docs/security-and-privacy.md](docs/security-and-privacy.md) before connect
 
 1. Connect a Google account and select specific files or folders using a user-facing picker.
 2. View selected files in a mirrored folder tree with indexing status and supported-format indicators.
-3. Extract supported content and metadata, then suggest editable topic tags with evidence and confidence.
+3. Extract supported content and metadata, then review editable topic-tag suggestions with evidence and confidence.
 4. Explore files by folder, tag, text search, and topic/document relationships.
 5. Compare versions of the same supported text document, or compose a new reviewable document from multiple sources.
 6. Preview the result, inspect citations and source links, then save it as a new Drive file only after user confirmation.
@@ -85,17 +90,20 @@ Read [docs/security-and-privacy.md](docs/security-and-privacy.md) before connect
 ### Release 1 — Drive library and editable topic tags
 
 - Implemented: persistent, account-scoped manual tags for explicitly selected resources.
-- Mirror selected folder structure and list selected files with name, MIME type, modified time, and source link.
-- Index metadata reliably and show queued, processing, ready, unsupported, and failed states.
-- Support manual tags and reviewable AI tag suggestions with confidence and evidence.
-- Add folder, tag, and file-type filters.
-- Keep file contents out of logs and do not send content to AI unless a user-facing feature requires it.
-- Initial content support: metadata for selected file types, extraction initially limited to plain text/Markdown and exportable Google Docs.
+- Implemented: folder, tag, and MIME-type filters; explicit selected-folder scans upsert descendant metadata and replace each folder's prior scan snapshot.
+- Implemented: render scanned metadata as a collapsible parent-child folder tree while retaining resource filters.
+- Implemented: persist and display the last metadata refresh time for each resource; existing resources show no refresh time until they are next selected or scanned.
+- Implemented: metadata-only selected-folder scans with a bounded three-worker folder traversal and visible progress.
+- Implemented: browser-side text extraction for plain text, Markdown, and exportable Google Docs in selected-resource scopes (including scanned descendants), with a 500 KB limit.
+- Implemented: optional account-scoped extracted-text retention, view, refresh, explicit deletion, and deletion on disconnect; retention is selected per extraction and defaults on.
+- Implemented: optional Gemini tag suggestions through LangChain4j; users see the free-tier disclosure before sending up to 30,000 characters, and suggestions require manual acceptance.
+- Keep extracted text and AI prompts/responses out of logs; do not send content to AI without explicit confirmation.
+- Remaining: surface unsupported/failed processing states consistently and validate content/account isolation against PostgreSQL in an integration test.
 
 ### Release 2 — Search, extraction, and grounded retrieval
 
-- Add PDF extraction, including scanned-PDF OCR, and other formats only as separate, tested adapters with documented limits and page-level provenance.
-- Evaluate [Docling](https://docling-project.github.io/docling/) or equivalent as an extraction/OCR adapter; do not add a separate runtime or promise its full format list until accuracy, operational cost, privacy, and licensing are evaluated.
+- Add browser-local PDF extraction, including scanned-PDF OCR, and image OCR as separate, tested adapters with documented limits and page-level provenance.
+- Evaluate PDF.js plus Tesseract.js or equivalent browser-local libraries; retain document data in the browser and do not send it to a remote OCR service. Validate accuracy, memory/runtime limits, accessibility, and licensing before adoption.
 - Add full-text search across successfully extracted content.
 - Consider pgvector only if semantic retrieval is justified, with source links and page/section references.
 - If evaluation justifies embeddings, add reviewable topic/document grouping and semantic-overlap/possible-duplicate suggestions with source evidence.
@@ -104,10 +112,12 @@ Read [docs/security-and-privacy.md](docs/security-and-privacy.md) before connect
 
 ### Release 3 — Compare and compose safely
 
+- Implemented: Gemini merge-summarize and detail-preserving merge-in-full for 2–10 extracted supported files and up to 60,000 combined characters, with exact source-evidence validation, source links, merge notes, review/edit, and user-initiated Markdown download. Full mode flags source contradictions and does not claim external fact-checking. The result is not stored by DriveAtlas, and originals are never changed.
 - Compare versions of the same supported text document using deterministic diff first.
 - Offer three-way conflict resolution only for the same document with a known common base.
-- Provide a review UI for same-document conflicts and multi-source composition: show source passages beside the proposed draft, cite each claim, and let users accept, edit, or keep source contributions before saving.
-- Compose drafts from multiple source files with citations/provenance; do not confuse synthesis with version merging or apply Git conflict resolution to unrelated documents.
+- Add source-section reordering and a color-coded per-change review UI with accept/reject and source-contribution controls; the current composer does not provide these controls.
+- Provide an interactive review UI for multi-source consolidation: show source passages beside the proposed draft, color-code contributions, and let users accept, reject, edit, or keep source content before saving.
+- Evaluate source coverage, evidence-grounding, usefulness, and contradiction handling; citations improve traceability but do not prove that the consolidation preserved every meaningful fact. Do not confuse synthesis with version merging or apply Git conflict resolution to unrelated documents.
 - Review every change and save approved results as new Drive files only after confirmation; never overwrite, archive, trash, or delete originals as an automatic deduplication step.
 - Initial merge support: plain text and Markdown.
 
@@ -151,7 +161,7 @@ Checked **2026-11-17** against the projects' current documentation and repositor
 
 ## Quality and acceptance gates
 
-- Test OAuth boundaries, Drive adapter authorization, extraction, permissions, and persistence.
+- Test OAuth boundaries, Drive adapter authorization, extraction, permissions, content retention, and persistence.
 - Add frontend/backend contract tests and deterministic mocked AI providers; ordinary CI must not depend on a live AI provider.
 - Test large, unsupported, malformed, corrupt, and revoked-access files, retries, and duplicate jobs as those features are introduced.
 - Verify users cannot read another account's metadata, extracted content, tags, or generated results.
